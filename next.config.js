@@ -8,5 +8,6 @@ module.exports = withOptimizedImages({
     lang: 'en',
     locale: 'en-US'
   },
-  reactStrictMode: true
+  reactStrictMode: true,
+  distDir: 'build'
 });
