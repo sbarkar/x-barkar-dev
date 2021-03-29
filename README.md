@@ -1,50 +1,14 @@
-# To Do
+# Make an OS with React & Next.js (**Saturdays @ 9 PM PST**)
 
-## System
+I'm [live streaming](https://youtube.com/playlist?list=PLM88opVjBuU7xSRoHhs3hZBz3JmHHBMMN) the [total re-write](https://github.com/DustinBrett/x/tree/redo) of this project on [my YouTube channel](https://www.youtube.com/c/DustinBrett/videos)!
 
-- Windows
-  - Restoring from taskbar should refocus onto window
-  - Initial load maximized if dimensions > screen
-  - Save/restore maximized state
-  - Fix missing exit animation on windowless apps
-  - Auto re-render maximized window on layout/orientation changes
-  - Auto height resize should have more bottom padding
-- Desktop Icons
-  - Dragged icons not staying inside desktop container
-  - In Firefox dragging doesn't work if started from the icon
-  - Dragging should go in front of windows
-  - Store icon positions
-  - Switch to grid layout
-  - Fix single and multi line truncation issues
-- Start Menu
-  - START MENU click to toggle button bar
-  - Auto resize height for shorter screens
-  - Not auto closing on blur on Safari
-  - In Safari mobile the window icon moves with scroll/swipe
-- File Manager
-  - Filename not properly truncating
-  - Resizable/sortable/scrollable columns
-  - Modified date/time
-  - Store/display uploaded file stats
-  - Expandable tree-view of directories (List & Menu View)
-  - Uploaded files not working on subsequent loads
-- Generic Toolbar
-  - Buttons, Inputs & Selects
+[![Make an OS with React & Next.js](https://img.youtube.com/vi/te1sxZVj55E/0.jpg)](https://youtube.com/playlist?list=PLM88opVjBuU7xSRoHhs3hZBz3JmHHBMMN)
 
-## Apps
-
-- DOS
-  - Auto resize has too much padding since upgrading to v7
-  - Add virtual keyboard toggle and touch capability
-  - Remove canvas animation transition during maximize
-- PDF.js
-  - Add responsive page containers & zoom controls
-- WebODF
-  - Clicking links doesn't work
-  - Document file type icon
-- Blog
-  - Dragging window loses "grip" randomly
-  - In Safari the iframe height goes outside it's container
-- Winamp
-  - Main window titlebar focus doesn't work on load or mobile
-  - Cannot resize playlist on mobile
+### - [Project Goals & Setup](https://youtu.be/S-rF5rkhaJ0) (01/02/21)
+### - [More Setup & Testing](https://youtu.be/te1sxZVj55E) (01/09/21)
+### - [Contexts & Refactoring](https://youtu.be/wbKSvZ2DrJg) (01/16/21)
+### - [System Components](https://youtu.be/o6Q8gF-zwL0) (01/23/21)
+### - [Wallpaper & Taskbar](https://youtu.be/LdZQ-qmS7to) (01/30/21)
+### - [Wallpaper, Taskbar & Refactoring](https://youtu.be/DVn1LB5PwYk) (02/06/21)
+### - [Taskbar & Refactoring](https://youtu.be/prxGXXX-SU0) (02/13/21)
+### - [Clock & File System](https://youtu.be/y_RZ_YitbXg) (02/20/21)
