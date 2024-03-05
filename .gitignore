@@ -2,7 +2,9 @@
 .swc
 certificates
 out
+
 .vercel
+.wrangler
 
 node_modules
 
