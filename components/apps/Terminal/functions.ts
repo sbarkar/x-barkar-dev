@@ -55,7 +55,7 @@ export const commands: Record<string, string> = {
   rd: "Removes a directory.",
   ren: "Renames a file or directory.",
   rm: "Removes a file or directory.",
-  sheep: "Spawn a new sheep",
+  sheep: "Spawn a new sheep.",
   shutdown: "Allows proper local shutdown of machine.",
   taskkill: "Kill or stop a running process or application.",
   tasklist: "Displays all currently running processes.",
@@ -66,7 +66,7 @@ export const commands: Record<string, string> = {
   uptime: "Display the current uptime of the local system.",
   ver: "Displays the system version.",
   wapm: "Run universal Wasm binaries.",
-  weather: "Weather forecast service",
+  weather: "Weather forecast service.",
   whoami: "Displays user information.",
   wsl: "Launches the default Linux shell.",
   xlsx: "Convert a spreadsheet file to another format.",
@@ -152,9 +152,9 @@ export const autoComplete = (
       if (lowerCommand === "git") return Object.keys(gitCommands);
       if (directoryCommands.has(lowerCommand)) return directory;
 
-      const lowerProcesses = Object.keys(processDirectory).map((pid) =>
-        pid.toLowerCase()
-      );
+      const lowerProcesses = Object.entries(processDirectory)
+        .filter(([, { dialogProcess }]) => !dialogProcess)
+        .map(([pid]) => pid.toLowerCase());
 
       if (
         lowerProcesses.includes(lowerCommand) ||

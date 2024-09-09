@@ -13,7 +13,7 @@ import {
 } from "components/system/Files/FileManager/useFolder";
 import { type SortBy } from "components/system/Files/FileManager/useSortBy";
 import { ONE_TIME_PASSIVE_EVENT, ROOT_SHORTCUT } from "utils/constants";
-import { haltEvent } from "utils/functions";
+import { haltEvent, toSorted } from "utils/functions";
 
 export type FileStat = Stats & {
   systemShortcut?: boolean;
@@ -82,11 +82,11 @@ export const sortContents = (
   });
 
   const sortContent = (fileStats: FileStats[]): FileStats[] => {
-    fileStats.sort(sortByName);
+    const newFileStats = toSorted(fileStats, sortByName);
 
     return sortFunction && sortFunction !== sortByName
-      ? fileStats.sort(sortFunction)
-      : fileStats;
+      ? toSorted(newFileStats, sortFunction)
+      : newFileStats;
   };
   const sortedFolders = sortContent(folders);
   const sortedFiles = sortContent(files);
@@ -134,6 +134,7 @@ export const createFileReaders = async (
   directory: string,
   callback: NewPath
 ): Promise<FileReaders> => {
+  const hasSingleFile = files.length === 1;
   const fileReaders: FileReaders = [];
   const addFile = (file: File, subFolder = ""): void => {
     const reader = new FileReader();
@@ -145,7 +146,7 @@ export const createFileReaders = async (
           callback(
             join(subFolder, file.name),
             Buffer.from(target.result),
-            files.length === 1 ? COMPLETE_ACTION.UPDATE_URL : undefined
+            hasSingleFile ? COMPLETE_ACTION.UPDATE_URL : undefined
           );
         }
       },
@@ -220,7 +221,9 @@ export const handleFileInputEvent = (
   event: InputChangeEvent | React.DragEvent,
   callback: NewPath,
   directory: string,
-  openTransferDialog: (fileReaders: FileReaders | ObjectReaders) => void,
+  openTransferDialog: (
+    fileReaders: FileReaders | ObjectReaders
+  ) => Promise<void>,
   hasUpdateId = false
 ): void => {
   haltEvent(event);
@@ -265,7 +268,10 @@ export const handleFileInputEvent = (
         if (hasUpdateId || singleFile.directory === singleFile.name) return;
       }
 
-      if (filePaths.every((filePath) => dirname(filePath) === directory)) {
+      if (
+        filePaths.every((filePath) => dirname(filePath) === directory) ||
+        filePaths.includes(directory)
+      ) {
         return;
       }
 

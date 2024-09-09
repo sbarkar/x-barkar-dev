@@ -1,21 +1,25 @@
 import { join } from "path";
 import { useTheme } from "styled-components";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   BASE_CANVAS_SELECTOR,
   BASE_VIDEO_SELECTOR,
+  REDUCED_MOTION_PERCENT,
   WALLPAPER_PATHS,
   WALLPAPER_WORKERS,
+  WALLPAPER_WORKER_NAMES,
   bgPositionSize,
 } from "components/system/Desktop/Wallpapers/constants";
-import { type WallpaperConfig } from "components/system/Desktop/Wallpapers/types";
+import {
+  type WallpaperMessage,
+  type WallpaperConfig,
+} from "components/system/Desktop/Wallpapers/types";
 import { config as vantaConfig } from "components/system/Desktop/Wallpapers/vantaWaves/config";
 import { useFileSystem } from "contexts/fileSystem";
 import { useSession } from "contexts/session";
 import useWorker from "hooks/useWorker";
 import {
   DEFAULT_LOCALE,
-  HIGH_PRIORITY_REQUEST,
   IMAGE_FILE_EXTENSIONS,
   MILLISECONDS_IN_DAY,
   MILLISECONDS_IN_MINUTE,
@@ -32,22 +36,12 @@ import {
   createOffscreenCanvas,
   getExtension,
   getYouTubeUrlId,
+  isBeforeBg,
   isYouTubeUrl,
   jsonFetch,
+  parseBgPosition,
   viewWidth,
 } from "utils/functions";
-
-declare global {
-  interface Window {
-    DEBUG_DISABLE_WALLPAPER?: boolean;
-    WallpaperDestroy?: () => void;
-  }
-}
-
-type WallpaperMessage = { message: string; type: string };
-
-const WALLPAPER_WORKER_NAMES = Object.keys(WALLPAPER_WORKERS);
-const REDUCED_MOTION_PERCENT = 0.1;
 
 const slideshowFiles: string[] = [];
 
@@ -59,7 +53,10 @@ const useWallpaper = (
   const { sessionLoaded, setWallpaper, wallpaperImage, wallpaperFit } =
     useSession();
   const { colors } = useTheme();
-  const [wallpaperName] = wallpaperImage.split(" ");
+  const [wallpaperName] = useMemo(
+    () => wallpaperImage.split(" "),
+    [wallpaperImage]
+  );
   const vantaWireframe = wallpaperImage === "VANTA WIREFRAME";
   const wallpaperWorker = useWorker<void>(
     WALLPAPER_WORKERS[wallpaperName],
@@ -68,6 +65,23 @@ const useWallpaper = (
   );
   const wallpaperTimerRef = useRef<number>();
   const failedOffscreenContext = useRef(false);
+  const resetWallpaper = useCallback(
+    (keepCanvas?: boolean): void => {
+      desktopRef.current?.querySelector(BASE_VIDEO_SELECTOR)?.remove();
+
+      if (!keepCanvas) {
+        desktopRef.current?.querySelector(BASE_CANVAS_SELECTOR)?.remove();
+
+        window.WallpaperDestroy?.();
+      }
+
+      if (wallpaperName !== "SLIDESHOW") {
+        document.documentElement.style.removeProperty("--after-background");
+        document.documentElement.style.removeProperty("--before-background");
+      }
+    },
+    [desktopRef, wallpaperName]
+  );
   const loadWallpaper = useCallback(
     async (keepCanvas?: boolean) => {
       if (!desktopRef.current) return;
@@ -123,15 +137,11 @@ const useWallpaper = (
         document.documentElement.style.background.replace(/".*"/, "")
       );
 
-      if (!keepCanvas) {
-        desktopRef.current.querySelector(BASE_CANVAS_SELECTOR)?.remove();
-
-        window.WallpaperDestroy?.();
-      }
+      resetWallpaper(keepCanvas);
 
       if (
         !failedOffscreenContext.current &&
-        window.OffscreenCanvas !== undefined &&
+        typeof window.OffscreenCanvas === "function" &&
         wallpaperWorker.current
       ) {
         const workerConfig = { config, devicePixelRatio: 1 };
@@ -146,19 +156,6 @@ const useWallpaper = (
             [offscreen]
           );
 
-          wallpaperWorker.current.addEventListener(
-            "message",
-            ({ data }: { data: WallpaperMessage }) => {
-              if (data.type === "[error]") {
-                if (data.message.includes("getContext")) {
-                  failedOffscreenContext.current = true;
-                  loadWallpaper();
-                } else {
-                  setWallpaper("SLIDESHOW");
-                }
-              }
-            }
-          );
           if (wallpaperName === "STABLE_DIFFUSION") {
             const loadingStatus = document.createElement("div");
 
@@ -188,14 +185,31 @@ const useWallpaper = (
                 loadingStatus.style.display = data.message ? "block" : "none";
               }
             );
+          } else {
+            wallpaperWorker.current.addEventListener(
+              "message",
+              ({ data }: { data: WallpaperMessage }) => {
+                if (data.type === "[error]") {
+                  if (data.message.includes("getContext")) {
+                    failedOffscreenContext.current = true;
+                    loadWallpaper();
+                  } else {
+                    setWallpaper("SLIDESHOW");
+                  }
+                }
+              }
+            );
           }
         }
       } else if (WALLPAPER_PATHS[wallpaperName]) {
+        const fallbackWallpaper = (): void =>
+          setWallpaper(wallpaperName === "VANTA" ? "SLIDESHOW" : "VANTA");
+
         WALLPAPER_PATHS[wallpaperName]()
           .then(({ default: wallpaper }) =>
-            wallpaper?.(desktopRef.current, config)
+            wallpaper?.(desktopRef.current, config, fallbackWallpaper)
           )
-          .catch(() => setWallpaper("VANTA"));
+          .catch(fallbackWallpaper);
       } else {
         setWallpaper("VANTA");
       }
@@ -204,6 +218,7 @@ const useWallpaper = (
       desktopRef,
       exists,
       readFile,
+      resetWallpaper,
       setWallpaper,
       vantaWireframe,
       wallpaperImage,
@@ -234,17 +249,20 @@ const useWallpaper = (
     [readdir, lstat]
   );
   const loadFileWallpaper = useCallback(async () => {
-    const [, currentWallpaperUrl] =
-      /"(.*?)"/.exec(document.documentElement.style.background) || [];
+    let [, currentWallpaperUrl] =
+      /url\((.*)\)/.exec(
+        document.documentElement.style.getPropertyValue(
+          isBeforeBg() ? "--before-background" : "--after-background"
+        )
+      ) || [];
+
+    currentWallpaperUrl = currentWallpaperUrl?.replace(/\\/g, "");
 
     if (currentWallpaperUrl?.startsWith("blob:")) {
       cleanUpBufferUrl(currentWallpaperUrl);
     }
 
-    desktopRef.current?.querySelector(BASE_CANVAS_SELECTOR)?.remove();
-    desktopRef.current?.querySelector(BASE_VIDEO_SELECTOR)?.remove();
-
-    window.WallpaperDestroy?.();
+    resetWallpaper();
 
     let wallpaperUrl = "";
     let fallbackBackground = "";
@@ -281,10 +299,14 @@ const useWallpaper = (
       do {
         wallpaperUrl = slideshowFiles.shift() || "";
 
-        const [nextWallpaper] = slideshowFiles;
+        let [nextWallpaper] = slideshowFiles;
 
         if (nextWallpaper) {
           const preloadLink = document.createElement("link");
+
+          if (nextWallpaper.startsWith("/")) {
+            nextWallpaper = `${window.location.origin}${nextWallpaper}`;
+          }
 
           preloadLink.id = "preloadWallpaper";
           preloadLink.href = nextWallpaper;
@@ -380,36 +402,57 @@ const useWallpaper = (
         desktopRef.current?.append(video);
       } else {
         const applyWallpaper = (url: string): void => {
+          let positionSize = bgPositionSize[newWallpaperFit];
+
+          if (isSlideshow) {
+            try {
+              const { searchParams } = new URL(url);
+              const { x, y } = Object.fromEntries(searchParams.entries());
+
+              positionSize = `${parseBgPosition(x)} ${parseBgPosition(y)} / cover`;
+            } catch {
+              // Ignore failure to specify background position
+            }
+          }
+
           const repeat = newWallpaperFit === "tile" ? "repeat" : "no-repeat";
-          const positionSize = bgPositionSize[newWallpaperFit];
           const isTopWindow = window === window.top;
+          const isAfterNextBackground = isBeforeBg();
 
           document.documentElement.style.setProperty(
-            "background",
+            `--${isAfterNextBackground ? "after" : "before"}-background`,
             `url(${CSS.escape(
               url
             )}) ${positionSize} ${repeat} fixed border-box border-box ${
               isTopWindow ? colors.background : colors.text
             }`
           );
+          document.documentElement.style.setProperty(
+            "--after-background-opacity",
+            isAfterNextBackground ? "1" : "0"
+          );
+          document.documentElement.style.setProperty(
+            "--before-background-opacity",
+            isAfterNextBackground ? "0" : "1"
+          );
 
           if (!isTopWindow) {
             document.documentElement.style.setProperty(
-              "background-blend-mode",
+              "--background-blend-mode",
               "difference"
             );
           }
         };
 
         if (fallbackBackground) {
-          fetch(wallpaperUrl, {
-            ...HIGH_PRIORITY_REQUEST,
-            mode: "no-cors",
-          })
-            .then(({ ok }) => {
-              if (!ok) throw new Error("Failed to load url");
-            })
-            .catch(() => applyWallpaper(fallbackBackground));
+          const checkImg = new Image();
+
+          checkImg.addEventListener("load", () => applyWallpaper(wallpaperUrl));
+          checkImg.addEventListener("error", () =>
+            applyWallpaper(fallbackBackground)
+          );
+          checkImg.decoding = "async";
+          checkImg.src = wallpaperUrl;
         } else {
           applyWallpaper(wallpaperUrl);
 
@@ -431,6 +474,7 @@ const useWallpaper = (
     getAllImages,
     loadWallpaper,
     readFile,
+    resetWallpaper,
     setWallpaper,
     updateFolder,
     wallpaperFit,

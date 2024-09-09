@@ -3,6 +3,13 @@ import { type VantaWavesConfig } from "components/system/Desktop/Wallpapers/vant
 import { type Size } from "components/system/Window/RndWindow/useResizable";
 import type MatrixConfig from "components/system/Desktop/Wallpapers/Matrix/config";
 
+declare global {
+  interface Window {
+    DEBUG_DISABLE_WALLPAPER?: boolean;
+    WallpaperDestroy?: () => void;
+  }
+}
+
 export type WallpaperConfig =
   | Partial<StableDiffusionConfig>
   | Partial<typeof MatrixConfig>
@@ -10,7 +17,8 @@ export type WallpaperConfig =
 
 export type WallpaperFunc = (
   el: HTMLElement | null,
-  config?: WallpaperConfig
+  config?: WallpaperConfig,
+  fallback?: () => void
 ) => Promise<void> | void;
 
 export type OffscreenRenderProps = {
@@ -19,3 +27,12 @@ export type OffscreenRenderProps = {
   config?: Partial<StableDiffusionConfig> | VantaWavesConfig;
   devicePixelRatio: number;
 };
+
+export type WallpaperMenuItem = {
+  id: string;
+  name?: string;
+  requiresWebGPU?: boolean;
+  startsWith?: boolean;
+};
+
+export type WallpaperMessage = { message: string; type: string };

@@ -54,6 +54,7 @@ import {
   VIDEO_FILE_EXTENSIONS,
 } from "utils/constants";
 import {
+  blobToBase64,
   bufferToUrl,
   getExtension,
   getFormattedSize,
@@ -320,7 +321,9 @@ const FileEntry: FC<FileEntryProps> = ({
             !(await exists(cachedIconPath)) &&
             iconRef.current instanceof HTMLImageElement
           ) {
-            const cacheIcon = async (): Promise<void> => {
+            const cacheIcon = async (
+              retryCanvasDraw?: boolean
+            ): Promise<void> => {
               if (iconRef.current instanceof HTMLImageElement) {
                 const nextQueueItem = (): Promise<void> => {
                   cacheQueue.shift();
@@ -331,9 +334,16 @@ const FileEntry: FC<FileEntryProps> = ({
                 if (
                   iconRef.current.currentSrc.startsWith(
                     "data:image/gif;base64,"
+                  ) ||
+                  iconRef.current.currentSrc.startsWith(
+                    "data:image/png;base64,"
                   )
                 ) {
                   generatedIcon = iconRef.current.currentSrc;
+                } else if (iconRef.current.currentSrc.startsWith("blob:")) {
+                  generatedIcon = await blobToBase64(
+                    await (await fetch(iconRef.current.currentSrc)).blob()
+                  );
                 } else {
                   const { clientHeight, clientWidth } = iconRef.current;
                   const { naturalHeight, naturalWidth } = iconRef.current;
@@ -370,10 +380,16 @@ const FileEntry: FC<FileEntryProps> = ({
                     // Ignore failure to capture
                   }
 
-                  if (iconCanvas && isCanvasDrawn(iconCanvas)) {
+                  if (
+                    iconCanvas &&
+                    (isCanvasDrawn(iconCanvas) || retryCanvasDraw)
+                  ) {
                     generatedIcon = iconCanvas.toDataURL("image/png");
                   } else {
-                    setTimeout(cacheIcon, TRANSITIONS_IN_MILLISECONDS.WINDOW);
+                    setTimeout(
+                      () => cacheIcon(true),
+                      TRANSITIONS_IN_MILLISECONDS.WINDOW
+                    );
                   }
                 }
 
@@ -407,7 +423,7 @@ const FileEntry: FC<FileEntryProps> = ({
             else {
               iconRef.current.addEventListener(
                 "load",
-                cacheIcon,
+                () => cacheIcon(),
                 ONE_TIME_PASSIVE_EVENT
               );
             }
@@ -501,8 +517,8 @@ const FileEntry: FC<FileEntryProps> = ({
         }
       } else if (
         isFocused &&
-        focusedEntries.length === 1 &&
         buttonRef.current !== document.activeElement &&
+        focusedEntries.length === 1 &&
         !buttonRef.current.contains(document.activeElement)
       ) {
         buttonRef.current.focus(PREVENT_SCROLL);
@@ -548,6 +564,10 @@ const FileEntry: FC<FileEntryProps> = ({
             [listView]
           )}
           $renaming={renaming}
+          {...(isHeading && {
+            "aria-level": 1,
+            role: "heading",
+          })}
         >
           <Icon
             ref={iconRef}
@@ -558,9 +578,9 @@ const FileEntry: FC<FileEntryProps> = ({
             {...FileEntryIconSize[view]}
           />
           <SubIcons
+            alt={name}
             icon={icon}
             isDesktop={isDesktop}
-            name={name}
             showShortcutIcon={Boolean(hideShortcutIcon || stats.systemShortcut)}
             subIcons={subIcons}
             view={view}
@@ -577,12 +597,7 @@ const FileEntry: FC<FileEntryProps> = ({
               setRenaming={setRenaming}
             />
           ) : (
-            <figcaption
-              {...(isHeading && {
-                "aria-level": 1,
-                role: "heading",
-              })}
-            >
+            <figcaption>
               {!isOnlyFocusedEntry || name.length === truncatedName.length
                 ? truncatedName
                 : name}
