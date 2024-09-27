@@ -103,6 +103,7 @@
 
 ### File Systems
 
+- [native-file-system-adapter](https://github.com/jimmywarting/native-file-system-adapter)
 - [WebDAV](https://github.com/perry-mitchell/webdav-client)
 
 ### File Information
@@ -171,6 +172,7 @@
 
 ### Photo Viewer
 
+- [jpeg2000](https://github.com/runk/jpeg2000)
 - [TGA](https://github.com/schmittl/tgajs/tree/gh-pages)
 - [RAW](https://github.com/zfedoran/dcraw.js)
 - [PSD](https://webtoon.github.io/psd/)
@@ -268,6 +270,9 @@
   - [Paper Clouds](https://www.shadertoy.com/view/WtjGRc)
   - [Descent](https://www.shadertoy.com/view/wdfGW4)
   - [Glassy Field](https://www.shadertoy.com/view/4ttGDH)
+- Art Wallpapers
+  - [MMoA](https://metmuseum.github.io/)
+  - [AIoC](https://api.artic.edu/docs/)
 - [spacekit](https://github.com/typpo/spacekit)
 - [UVCanvas](https://github.com/latentcat/uvcanvas)
 - [Google Easter Eggs](https://elgoog.im/)
