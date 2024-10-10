@@ -91,7 +91,7 @@ globalThis.addEventListener(
         }
       }
 
-      let response = "";
+      let response: string | ReadableStream<string> = "";
       let retry = 0;
 
       try {
@@ -100,9 +100,12 @@ globalThis.addEventListener(
 
           try {
             if (data.hasWindowAI) {
-              response =
-                // eslint-disable-next-line no-await-in-loop
-                (await (session as AIAssistant)?.prompt(data.text)) || "";
+              const aiAssistant = session as AIAssistant;
+
+              response = data.streamId
+                ? aiAssistant?.promptStreaming(data.text)
+                : // eslint-disable-next-line no-await-in-loop
+                  (await aiAssistant?.prompt(data.text)) || "";
             } else {
               (session as ChatCompletionMessageParam[]).push({
                 content: data.text,
@@ -134,25 +137,47 @@ globalThis.addEventListener(
         console.error("Failed to create text session.", error);
       }
 
-      if (cancel) {
-        cancel = false;
-        globalThis.postMessage("canceled");
-      } else {
+      if (!cancel) {
         if (response && !markedLoaded) {
           globalThis.importScripts(...MARKED_LIBS);
           markedLoaded = true;
         }
 
-        globalThis.postMessage({
-          formattedResponse: globalThis.marked.parse(response, {
-            headerIds: false,
-            mangle: false,
-          }),
-          response,
-        });
+        const sendMessage = (message: string, streamId?: number): void =>
+          globalThis.postMessage({
+            formattedResponse: globalThis.marked.parse(message, {
+              headerIds: false,
+              mangle: false,
+            }),
+            response: message,
+            streamId,
+          });
+
+        if (typeof response === "string") {
+          sendMessage(response);
+        } else {
+          try {
+            // @ts-expect-error ReadableStream will have an asyncIterator if Prompt API exists
+            // eslint-disable-next-line @typescript-eslint/await-thenable
+            for await (const chunk of response) {
+              if (cancel) break;
+
+              sendMessage(chunk as string, data.streamId);
+            }
+          } catch (error) {
+            console.error("Failed to stream prompt response.", error);
+          }
+
+          globalThis.postMessage({ complete: true, streamId: data.streamId });
+        }
       }
 
       responding = false;
+
+      if (cancel) {
+        cancel = false;
+        globalThis.postMessage("canceled");
+      }
     }
   },
   { passive: true }

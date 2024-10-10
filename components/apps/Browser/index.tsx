@@ -1,5 +1,6 @@
 import { basename, join, resolve } from "path";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ADDRESS_INPUT_PROPS } from "components/apps/FileExplorer/AddressBar";
 import useHistoryMenu from "components/apps/Browser/useHistoryMenu";
 import useBookmarkMenu from "components/apps/Browser/useBookmarkMenu";
 import {
@@ -33,6 +34,7 @@ import {
   GOOGLE_SEARCH_QUERY,
   getExtension,
   getUrlOrSearch,
+  haltEvent,
   label,
 } from "utils/functions";
 import {
@@ -393,6 +395,7 @@ const Browser: FC<ComponentProcessProps> = ({ id }) => {
           <Button
             disabled={loading}
             onClick={() => setUrl(history[position])}
+            onContextMenu={haltEvent}
             {...label("Reload this page")}
           >
             {loading ? <Stop /> : <Refresh />}
@@ -401,7 +404,6 @@ const Browser: FC<ComponentProcessProps> = ({ id }) => {
         <input
           ref={inputRef}
           defaultValue={initialUrl}
-          enterKeyHint="go"
           onFocusCapture={() => inputRef.current?.select()}
           onKeyDown={({ key }) => {
             if (inputRef.current && key === "Enter") {
@@ -413,7 +415,7 @@ const Browser: FC<ComponentProcessProps> = ({ id }) => {
               inputRef.current.blur();
             }
           }}
-          type="text"
+          {...ADDRESS_INPUT_PROPS}
         />
       </nav>
       <nav>

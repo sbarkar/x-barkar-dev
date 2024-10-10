@@ -7,17 +7,31 @@ import { useFileSystem } from "contexts/fileSystem";
 import { useProcesses } from "contexts/process";
 import Button from "styles/common/Button";
 import Icon from "styles/common/Icon";
-import { ROOT_NAME } from "utils/constants";
-import { label } from "utils/functions";
+import { DISBALE_AUTO_INPUT_FEATURES, ROOT_NAME } from "utils/constants";
+import { getExtension, label } from "utils/functions";
+import { getProcessByFileExtension } from "components/system/Files/FileEntry/functions";
 
 type AddressBarProps = {
   id: string;
 };
+
+export const ADDRESS_INPUT_PROPS = {
+  "aria-label": "Address",
+  enterKeyHint: "go",
+  inputMode: "url",
+  name: "address",
+  ...DISBALE_AUTO_INPUT_FEATURES,
+} as React.DetailedHTMLProps<
+  React.InputHTMLAttributes<HTMLInputElement>,
+  HTMLInputElement
+>;
+
 const AddressBar = forwardRef<HTMLInputElement, AddressBarProps>(
   ({ id }, ref) => {
     const addressBarRef =
       ref as React.MutableRefObject<HTMLInputElement | null>;
     const {
+      open,
       url: changeUrl,
       processes: {
         [id]: { icon, url = "" },
@@ -25,7 +39,7 @@ const AddressBar = forwardRef<HTMLInputElement, AddressBarProps>(
     } = useProcesses();
     const displayName = basename(url) || ROOT_NAME;
     const [addressBar, setAddressBar] = useState(displayName);
-    const { exists, updateFolder } = useFileSystem();
+    const { exists, stat, updateFolder } = useFileSystem();
 
     useEffect(() => {
       if (addressBarRef.current) {
@@ -44,21 +58,27 @@ const AddressBar = forwardRef<HTMLInputElement, AddressBarProps>(
         <Icon alt={displayName} imgSize={16} src={icon} />
         <input
           ref={addressBarRef}
-          aria-label="Address"
-          enterKeyHint="go"
           onBlurCapture={() => setAddressBar(displayName)}
           onChange={({ target }) => setAddressBar(target.value)}
           onFocusCapture={() => setAddressBar(url)}
           onKeyDown={async ({ key }) => {
             if (key === "Enter" && addressBarRef.current) {
               const { value } = addressBarRef.current;
-              if (value && (await exists(value))) changeUrl(id, value);
+              if (value && (await exists(value))) {
+                if ((await stat(value)).isDirectory()) changeUrl(id, value);
+                else {
+                  open(
+                    getProcessByFileExtension(getExtension(value)) ||
+                      "OpenWith",
+                    { url: value }
+                  );
+                }
+              }
               addressBarRef.current.blur();
             }
           }}
-          spellCheck={false}
-          type="text"
           value={addressBar}
+          {...ADDRESS_INPUT_PROPS}
           {...useAddressBarContextMenu(url)}
         />
         <Button

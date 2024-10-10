@@ -4,6 +4,7 @@ import { TASKBAR_HEIGHT } from "utils/constants";
 
 type StyledAIChatProps = {
   $primaryColor: string;
+  $responding: boolean;
   $scrollbarVisible: boolean;
   $secondaryColor: string;
   $tertiaryColor: string;
@@ -129,6 +130,7 @@ const StyledAIChat = styled(motion.section)<StyledAIChatProps>`
       font-size: 13.5px;
       gap: 13px;
       letter-spacing: 0.2px;
+      margin-bottom: ${({ $responding }) => ($responding ? "43px" : undefined)};
       padding: 16px;
       padding-bottom: 5px;
 
@@ -222,11 +224,17 @@ const StyledAIChat = styled(motion.section)<StyledAIChatProps>`
       }
 
       .responding {
+        background-color: rgb(32, 32, 32);
+        bottom: 120px;
         display: flex;
+        left: 0;
+        margin: 0 16px;
         margin-top: -6px;
+        padding: 7px 0;
         place-content: center;
         place-items: center;
-        width: calc(100% + 13px);
+        position: absolute;
+        width: calc(100% - 32px);
 
         .stop {
           background-color: rgb(45, 45, 45);
@@ -383,6 +391,7 @@ const StyledAIChat = styled(motion.section)<StyledAIChatProps>`
   }
 
   footer {
+    bottom: 0;
     display: flex;
     flex-direction: row;
     height: 122px;
