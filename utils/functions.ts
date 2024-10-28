@@ -103,7 +103,7 @@ export const imageSrc = (
   ratio: number,
   extension: string
 ): string => {
-  const imageName = basename(imagePath, ".webp");
+  const imageName = basename(imagePath, extension);
   const [expectedSize, maxIconSize] = MAX_RES_ICON_OVERRIDE[imageName] || [];
   const ratioSize = size * ratio;
   const imageSize = Math.min(
@@ -143,10 +143,11 @@ export const createFallbackSrcSet = (
   src: string,
   failedUrls: string[]
 ): string => {
+  const srcExt = getExtension(src);
   const failedSizes = new Set(
     new Set(
       failedUrls.map((failedUrl) => {
-        const fileName = basename(src, extname(src));
+        const fileName = basename(src, srcExt);
 
         return Number(
           failedUrl
@@ -164,7 +165,7 @@ export const createFallbackSrcSet = (
   );
 
   return possibleSizes
-    .map((size) => imageSrc(src, size, 1, extname(src)))
+    .map((size) => imageSrc(src, size, 1, srcExt))
     .reverse()
     .join(", ");
 };
@@ -190,6 +191,12 @@ export const blobToBase64 = (blob: Blob): Promise<string> =>
 export const blobToBuffer = async (blob?: Blob | null): Promise<Buffer> =>
   blob ? Buffer.from(await blob.arrayBuffer()) : Buffer.from("");
 
+export const canvasToBuffer = (canvas?: HTMLCanvasElement): Buffer =>
+  Buffer.from(
+    canvas?.toDataURL("image/png").replace("data:image/png;base64,", "") || "",
+    "base64"
+  );
+
 export const imgDataToBuffer = (imageData: ImageData): Buffer => {
   const canvas = document.createElement("canvas");
 
@@ -197,11 +204,9 @@ export const imgDataToBuffer = (imageData: ImageData): Buffer => {
   canvas.height = imageData.height;
   canvas.getContext("2d")?.putImageData(imageData, 0, 0);
 
-  return Buffer.from(
-    canvas?.toDataURL("image/png").replace("data:image/png;base64,", ""),
-    "base64"
-  );
+  return canvasToBuffer(canvas);
 };
+
 export const cleanUpBufferUrl = (url: string): void => URL.revokeObjectURL(url);
 
 const rowBlank = (imageData: ImageData, width: number, y: number): boolean => {
@@ -804,11 +809,137 @@ export const getYouTubeUrlId = (url: string): string => {
   return "";
 };
 
+export const getMimeType = (url: string): string => {
+  switch (getExtension(url)) {
+    case ".ani":
+    case ".cur":
+    case ".ico":
+      return "image/vnd.microsoft.icon";
+    case ".cache":
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".json":
+      return "application/json";
+    case ".html":
+    case ".htm":
+    case ".whtml":
+      return "text/html";
+    case ".m3u":
+    case ".m3u8":
+      return "application/x-mpegURL";
+    case ".m4v":
+    case ".mkv":
+    case ".mov":
+    case ".mp4":
+      return "video/mp4";
+    case ".mp3":
+      return "audio/mpeg";
+    case ".oga":
+      return "audio/ogg";
+    case ".ogg":
+    case ".ogm":
+    case ".ogv":
+      return "video/ogg";
+    case ".pdf":
+      return "application/pdf";
+    case ".png":
+      return "image/png";
+    case ".md":
+    case ".txt":
+      return "text/plain";
+    case ".wav":
+      return "audio/wav";
+    case ".webm":
+      return "video/webm";
+    case ".webp":
+      return "image/webp";
+    case ".xml":
+      return "application/xml";
+    case ".wsz":
+    case ".jsdos":
+    case ".zip":
+      return "application/zip";
+    default:
+      return "";
+  }
+};
+
+export const isDynamicIcon = (icon?: string): boolean =>
+  typeof icon === "string" &&
+  (icon.startsWith(ICON_PATH) ||
+    (icon.startsWith(USER_ICON_PATH) && !icon.startsWith(ICON_CACHE)));
+
+const getPreloadedLinks = (): HTMLLinkElement[] => [
+  ...document.querySelectorAll<HTMLLinkElement>("link[rel=preload]"),
+];
+
+let HAS_WEBP_SUPPORT = false;
+
+export const supportsWebp = (): boolean => {
+  if (HAS_WEBP_SUPPORT) return true;
+
+  try {
+    HAS_WEBP_SUPPORT = document
+      .createElement("canvas")
+      .toDataURL("image/webp")
+      .startsWith("data:image/webp");
+  } catch {
+    // Ignore failure to check for WebP support
+  }
+
+  return HAS_WEBP_SUPPORT;
+};
+
+const supportsImageSrcSet = (): boolean =>
+  Object.prototype.hasOwnProperty.call(
+    HTMLLinkElement.prototype,
+    "imageSrcset"
+  );
+
+export const preloadImage = (
+  image: string,
+  id?: string,
+  fetchPriority: "auto" | "high" | "low" = "high"
+): void => {
+  const extension = getExtension(image);
+  const link = document.createElement("link");
+
+  link.as = "image";
+  if (id) link.id = id;
+  link.fetchPriority = fetchPriority;
+  link.rel = "preload";
+  link.type = getMimeType(extension);
+
+  if (isDynamicIcon(image)) {
+    if (supportsImageSrcSet()) {
+      link.imageSrcset = imageSrcs(image, 48, extension);
+    } else {
+      const [href] = imageSrc(image, 48, getDpi(), extension).split(" ");
+
+      link.href = href;
+    }
+  } else {
+    link.href = image;
+  }
+
+  const preloadedLinks = getPreloadedLinks();
+
+  if (
+    !preloadedLinks.some(
+      (preloadedLink) =>
+        (link.imageSrcset &&
+          preloadedLink?.imageSrcset?.endsWith(link.imageSrcset)) ||
+        (link.href && preloadedLink?.href?.endsWith(link.href))
+    )
+  ) {
+    document.head.append(link);
+  }
+};
+
 export const preloadLibs = (libs: string[] = []): void => {
   const scripts = [...document.scripts];
-  const preloadedLinks = [
-    ...document.querySelectorAll("link[rel=preload]"),
-  ] as HTMLLinkElement[];
+  const preloadedLinks = getPreloadedLinks();
 
   // eslint-disable-next-line unicorn/no-array-callback-reference
   libs.map(encodeURI).forEach((lib) => {
@@ -876,11 +1007,6 @@ export const generatePrettyTimestamp = (): string =>
 
 export const isFileSystemMappingSupported = (): boolean =>
   typeof FileSystemHandle === "function" && "showDirectoryPicker" in window;
-
-export const isDynamicIcon = (icon?: string): boolean =>
-  typeof icon === "string" &&
-  (icon.startsWith(ICON_PATH) ||
-    (icon.startsWith(USER_ICON_PATH) && !icon.startsWith(ICON_CACHE)));
 
 export const hasFinePointer = (): boolean =>
   window.matchMedia("(pointer: fine)").matches;

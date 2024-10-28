@@ -63,10 +63,6 @@ export const REDUCED_MOTION_PERCENT = 0.1;
 
 export const WALLPAPER_MENU: WallpaperMenuItem[] = [
   {
-    id: "APOD",
-    startsWith: true,
-  },
-  {
     id: "COASTAL_LANDSCAPE",
     name: "Coastal Landscape",
   },
@@ -83,12 +79,17 @@ export const WALLPAPER_MENU: WallpaperMenuItem[] = [
     name: "Matrix (3D)",
   },
   {
+    id: "APOD",
+    name: "NASA APOD",
+    startsWith: true,
+  },
+  {
     id: "SLIDESHOW",
     name: "Picture Slideshow",
   },
   {
     id: "STABLE_DIFFUSION",
-    name: "Stable Diffusion (Beta)",
+    name: "Stable Diffusion (beta)",
     requiresWebGPU: true,
   },
   {
@@ -103,3 +104,5 @@ export const BASE_CANVAS_SELECTOR = ":scope > canvas";
 export const BASE_VIDEO_SELECTOR = ":scope > video";
 
 export const STABLE_DIFFUSION_DELAY_IN_MIN = 10;
+
+export const PRELOAD_ID = "preloadWallpaper";

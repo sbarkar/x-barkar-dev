@@ -133,6 +133,19 @@ export const TEXT_EDITORS = ["MonacoEditor", "Vim"];
 
 export const CURSOR_FILE_EXTENSIONS = new Set([".ani", ".cur"]);
 
+export const TEXT_FILE_EXTENSIONS = new Set([
+  ".html",
+  ".htm",
+  ".whtml",
+  ".md",
+  ".txt",
+]);
+
+export const SUMMARIZABLE_FILE_EXTENSIONS = new Set([
+  ...TEXT_FILE_EXTENSIONS,
+  ".pdf",
+]);
+
 export const EDITABLE_IMAGE_FILE_EXTENSIONS = new Set([
   ".bmp",
   ".gif",
