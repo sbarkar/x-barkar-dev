@@ -1,4 +1,4 @@
-import { basename, dirname } from "path";
+import { basename, dirname, join } from "path";
 import { type Options, type Track, type URLTrack } from "webamp";
 import { useCallback, useEffect, useRef } from "react";
 import {
@@ -28,6 +28,8 @@ import {
   AUDIO_PLAYLIST_EXTENSIONS,
   DESKTOP_PATH,
   HIGH_PRIORITY_REQUEST,
+  ICON_CACHE,
+  ICON_CACHE_EXTENSION,
   MILLISECONDS_IN_SECOND,
   SAVE_PATH,
   TRANSITIONS_IN_MILLISECONDS,
@@ -47,12 +49,13 @@ const useWebamp = (id: string): Webamp => {
     useSession();
   const { position } = windowState || {};
   const {
+    argument,
     linkElement,
     processes: { [id]: process },
     title,
   } = useProcesses();
   const { closing, componentWindow } = process || {};
-  const webampCI = useRef<WebampCI>();
+  const webampCI = useRef<WebampCI>(undefined);
   const {
     createPath,
     deletePath,
@@ -63,8 +66,8 @@ const useWebamp = (id: string): Webamp => {
     writeFile,
   } = useFileSystem();
   const { onDrop } = useFileDrop({ id });
-  const metadataProviderRef = useRef<number>();
-  const windowPositionDebounceRef = useRef<number>();
+  const metadataProviderRef = useRef(0);
+  const windowPositionDebounceRef = useRef(0);
   const subscriptions = useRef<(() => void)[]>([]);
   const onWillClose = useCallback(
     (cancel?: () => void): void => {
@@ -139,9 +142,27 @@ const useWebamp = (id: string): Webamp => {
             element?.addEventListener("dragover", haltEvent);
           });
 
-          if (process && !componentWindow && mainWindow) {
-            linkElement(id, "componentWindow", containerElement);
-            linkElement(id, "peekElement", mainWindow);
+          if (process) {
+            if (!componentWindow) {
+              linkElement(id, "componentWindow", containerElement);
+            }
+
+            if (mainWindow) {
+              linkElement(id, "peekElement", mainWindow);
+            }
+
+            argument(id, "play", () => webamp.play());
+            argument(id, "pause", () => webamp.pause());
+            argument(id, "paused", (callback?: (paused: boolean) => void) => {
+              if (callback) {
+                webamp._actionEmitter.on("PLAY", () => callback(false));
+                webamp._actionEmitter.on("PAUSE", () => callback(true));
+                webamp._actionEmitter.on("STOP", () => callback(true));
+                webamp._actionEmitter.on("IS_STOPPED", () => callback(true));
+              }
+
+              return webamp.getMediaStatus() === "PAUSED";
+            });
           }
 
           if (!initialSkin && !process.url?.endsWith(".wsz")) {
@@ -246,6 +267,38 @@ const useWebamp = (id: string): Webamp => {
           }
 
           writeFile(SKIN_DATA_PATH, JSON.stringify(data), true);
+
+          try {
+            const { skinUrl } =
+              (webamp.options.availableSkins as { skinUrl?: string }[])?.find(
+                (skin) => skin.skinUrl
+              ) || {};
+
+            if (skinUrl) {
+              const screenshot = Buffer.from(
+                await (
+                  await fetch(
+                    `https://r2.webampskins.org/screenshots/${basename(skinUrl, ".wsz")}.png`
+                  )
+                ).arrayBuffer()
+              );
+              const iconCacheRootPath = join(ICON_CACHE, SAVE_PATH);
+              const iconCachePath = join(
+                ICON_CACHE,
+                `${SKIN_DATA_PATH}${ICON_CACHE_EXTENSION}`
+              );
+
+              if (!(await exists(iconCacheRootPath))) {
+                await mkdirRecursive(iconCacheRootPath);
+                updateFolder(dirname(SAVE_PATH));
+              }
+
+              await writeFile(iconCachePath, screenshot, true);
+            }
+          } catch {
+            // Ignore failure to get thumbnail screenshots
+          }
+
           updateFolder(SAVE_PATH, basename(SKIN_DATA_PATH));
         }),
         webamp._actionEmitter.on("LOAD_DEFAULT_SKIN", () => {
@@ -270,6 +323,7 @@ const useWebamp = (id: string): Webamp => {
       webampCI.current = webamp;
     },
     [
+      argument,
       componentWindow,
       createPath,
       deletePath,

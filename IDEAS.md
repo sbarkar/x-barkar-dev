@@ -63,6 +63,8 @@
 - Fancy Drag Zones for Windows
 - Calculator
   - [MCalculator](https://github.com/muzam1l/mcalculator)
+- Canvas Rendering
+  - [Skia Canvas](https://skia-canvas.org/)
 
 ## Features
 
@@ -226,6 +228,10 @@
 - [Palm](https://github.com/cloudpilot-emu/cloudpilot-emu)
 - [Commodore 64](https://github.com/mborgbrant/c64js)
 - [RetroArch](https://github.com/BinBashBanana/webretro)
+
+### Microkernel
+
+- [exaequOS](https://www.exaequos.com/)
 
 ### Messaging Protocols
 

@@ -133,16 +133,12 @@ export const TEXT_EDITORS = ["MonacoEditor", "Vim"];
 
 export const CURSOR_FILE_EXTENSIONS = new Set([".ani", ".cur"]);
 
-export const TEXT_FILE_EXTENSIONS = new Set([
+export const SUMMARIZABLE_FILE_EXTENSIONS = new Set([
   ".html",
   ".htm",
   ".whtml",
   ".md",
   ".txt",
-]);
-
-export const SUMMARIZABLE_FILE_EXTENSIONS = new Set([
-  ...TEXT_FILE_EXTENSIONS,
   ".pdf",
 ]);
 
@@ -366,7 +362,7 @@ export const BASE_ZIP_CONFIG: AsyncZipOptions = {
 export const HIGH_PRIORITY_REQUEST = { priority: "high" } as RequestInit;
 
 export const HIGH_PRIORITY_ELEMENT = {
-  fetchpriority: "high",
+  fetchPriority: "high",
 } as React.HTMLAttributes<HTMLElement>;
 
 export const DISBALE_AUTO_INPUT_FEATURES = {
