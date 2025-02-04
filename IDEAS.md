@@ -13,6 +13,8 @@
   - [Hackers](https://simone.computer/#/webdesktops) (Shows when site is inactive)
   - [Bouncing DVD Logo](https://www.bouncingdvdlogo.com/)
   - [Drift](https://github.com/sandydoo/flux)
+  - [Mystify](https://codepen.io/chrissimmons/pen/rWNJRp)
+  - [Johnny Castaway](https://github.com/xesf/castaway)
 - Add my old personal website
   - [http://surf.to/misc](https://web.archive.org/web/20050826192118if_/http://surf.to:80/misc)
 - Progressive Web App
@@ -39,11 +41,13 @@
 - 3rd Party App Support
 - Email App
   - Open SMTP Server
+  - [openpgpjs](https://github.com/openpgpjs/openpgpjs)
 - Task Manager
   - [stats.js](https://github.com/mrdoob/stats.js)
 - Batch File Support
 - Compress Images via Context Menu
   - [Squoosh](https://github.com/GoogleChromeLabs/squoosh) ([lib](https://www.npmjs.com/package/@squoosh/lib))
+    - [Squish](https://github.com/addyosmani/squish)
   - [wasm-vips](https://github.com/kleisauke/wasm-vips)
   - [SVGO](https://github.com/svg/svgo)
 - Set WOFF/TTF as System Font
@@ -156,6 +160,7 @@
 - Waveforms
   - [AudioMass](https://github.com/pkalogiros/audiomass)
   - [peaks.js](https://github.com/bbc/peaks.js)
+  - [wavesurfer.js](https://github.com/katspaugh/wavesurfer.js)
 - [Meyda](https://meyda.js.org/)
 - [Quiet.js](https://github.com/quiet/quiet-js/)
 
@@ -300,7 +305,9 @@
   - Stockfish.js ([1](https://github.com/nmrugg/stockfish.js), [2](https://github.com/lichess-org/stockfish.js), [WASM](https://github.com/lichess-org/stockfish.wasm))
   - Boards
     - [chessboard.js](https://chessboardjs.com/)
+    - [chessboard3.js](https://jtiscione.github.io/chessboard3js/index.html)
   - [HTML5 2D/3D chess](https://sourceforge.net/projects/htmlchess/)
+  - [chess.js](https://github.com/jhlywa/chess.js/)
 - Doom (WASM) ([1](https://github.com/cloudflare/doom-wasm), [2](https://github.com/lazarv/wasm-doom))
 - [Jazz Jackrabbit 2](https://deat.tk/jazz2/)
 - [Wipeout](https://github.com/phoboslab/wipeout-rewrite)
